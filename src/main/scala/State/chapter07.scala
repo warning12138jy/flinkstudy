@@ -1,5 +1,6 @@
 package State
 
+import org.apache.flink.cep.functions.PatternProcessFunction
 import org.apache.flink.cep.{PatternFlatSelectFunction, PatternSelectFunction}
 import org.apache.flink.cep.scala.CEP
 import org.apache.flink.cep.scala.pattern.Pattern
@@ -30,7 +31,7 @@ object chapter07 {
       .where(_.eventType.equals("fail"))
     // 2. 将 Pattern 应用到流上，检测匹配的复杂事件，得到一个 PatternStream
 //    val patternStream = CEP.pattern(stream,pattern)
-//    // 3. 将匹配到的复杂事件选择出来，然后包装成字符串报警信息输出
+    // 3. 将匹配到的复杂事件选择出来，然后包装成字符串报警信息输出
 //    patternStream.select(new PatternSelectFunction[LoginEvent,String] {
 //      override def select(map: util.Map[String, util.List[LoginEvent]]): String = {
 //        val first = map.get("first").get(0)
@@ -40,16 +41,27 @@ object chapter07 {
 //      }
 //    }).print("warning")
     //  PatternSelectFunction 的“扁平化”版本PatternFlatSelectFunction
-    val patternStream = CEP.pattern(stream,pattern)
-    patternStream.flatSelect(new PatternFlatSelectFunction[LoginEvent,String] {
-      override def flatSelect(map: util.Map[String, util.List[LoginEvent]], collector: Collector[String]): Unit = {
+//    val patternStream = CEP.pattern(stream,pattern)
+//    patternStream.flatSelect(new PatternFlatSelectFunction[LoginEvent,String] {
+//      override def flatSelect(map: util.Map[String, util.List[LoginEvent]], collector: Collector[String]): Unit = {
+//        val first = map.get("first").get(0)
+//        val second = map.get("second").get(0)
+//        val third = map.get("third").get(0)
+//        collector.collect((first.userId + " 连续三次登录失败！登录时间：" + first.timestamp + ", " + second.timestamp + ", " + third.timestamp))
+//      }
+//    }).print("warning")
+    //PatternProcessFunction 功能更加丰富、调用更加灵活，可以完全覆盖其他接口，也就
+    //成为了目前官方推荐的处理方式。事实上，PatternSelectFunction 和 PatternFlatSelectFunction
+    //在 CEP 内部执行时也会被转换成 PatternProcessFunction。
+    val patternStrem = CEP.pattern(stream,pattern)
+    patternStrem.process(new PatternProcessFunction[LoginEvent,String] {
+      override def processMatch(map: util.Map[String, util.List[LoginEvent]], context: PatternProcessFunction.Context, collector: Collector[String]): Unit = {
         val first = map.get("first").get(0)
         val second = map.get("second").get(0)
         val third = map.get("third").get(0)
-        collector.collect((first.userId + " 连续三次登录失败！登录时间：" + first.timestamp + ", " + second.timestamp + ", " + third.timestamp))
+        collector.collect(first.userId + " 连续三次登录失败！登录时间：" + first.timestamp + ", " + second.timestamp + ", " + third.timestamp)
       }
     }).print("warning")
-
 
     env.execute("flinkCEP")
   }

@@ -10,14 +10,7 @@ object chapter06 {
     val env:StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
     env.setParallelism(1)
     // 读取数据源
-    val eventStream = env.fromElements(
-      Event("Alice", "./home", 1000L),
-      Event("Bob", "./cart", 1000L),
-      Event("Alice", "./prod?id=1", 5 * 1000L),
-      Event("Cary", "./home", 60 * 1000L),
-      Event("Bob", "./prod?id=3", 90 * 1000L),
-      Event("Alice", "./prod?id=7", 105 * 1000L)
-    )
+    val eventStream = env.addSource(new ClickSource)
 
     //获取表环境
     val tableEnv = StreamTableEnvironment.create(env)
